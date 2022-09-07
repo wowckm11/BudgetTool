@@ -44,34 +44,10 @@ class DataBase:
     
 
     def input_new_person(self):
-        while True:
-            try:
-                name = JustLetters(id=input("Name: "))
-                for char in name.id:
-                    if char not in string.ascii_letters:
-                        name = ""
-                if name != "":
-                    name_tested = name.id
-                    break
-            except pydantic.error_wrappers.ValidationError:
-                print("name has to contain only letters and have length from 3 to 15 characters")
-
-        while True:
-            try:
-                income = PositiveInt(id=input("Monthly income: "))
-                income_tested = income.id
-                break
-            except pydantic.error_wrappers.ValidationError:
-                print("you have to input a positive integer")
-
-            
-        while True:
-            try:
-                limit = PositiveInt(id=input("Monthly spending limit: "))
-                limit_tested = limit.id
-                break
-            except pydantic.error_wrappers.ValidationError:
-                print("you have to input a positive integer")
+        
+        name_tested = validate_words("Person name: ")
+        income_tested = validate_positive_int("Monthly input: ")
+        limit_tested = validate_positive_int("Monthly spending limit: ")
         return name_tested, income_tested, limit_tested
 
     
@@ -92,14 +68,17 @@ class DataBase:
             print(f"Error: '{err}'")
     
     def execute_command(self, command):
-        query = ""
+
         if command == "0":
             query = self.insert_person()
+            finance_database.execute_query(query)
         elif command =="1":
             query = self.insert_payment()
-        else:
-            pass
-        finance_database.execute_query(query)
+            finance_database.execute_query(query)
+        elif command == "2":
+            query = self.input_filters
+            finance_database.read_query(query)
+        
     
     def insert_person(self):
         name, income, limit = self.input_new_person()
@@ -116,48 +95,64 @@ class DataBase:
     
     def input_new_payment(self):
 
-        while True:
-            try:
-                person_id = PositiveInt(id=input("database user id: "))
-                person_id_tested = person_id.id
-                break
-            except pydantic.error_wrappers.ValidationError:
-                print("you have to input a positive integer")
-
-        while True:
-            try:
-                date = Date(id=input("date of purchase "))
-                if date.id > datetime(1980,1,1).date():
-                    date_tested = date.id
-                    break
-                print("you have to input a valid date")
-            except pydantic.error_wrappers.ValidationError:
-                print("you have to input a valid date")
-        
-        while True:
-            try:
-                amount = PositiveInt(id=input("amount spent: "))
-                amount_tested = amount.id
-                break
-            except pydantic.error_wrappers.ValidationError:
-                print("you have to input a positive integer")
-        
-        while True:
-            try:
-                payment_type = JustLetters(id=input("purchase category: "))
-                for char in payment_type.id:
-                    if char not in string.ascii_letters:
-                        payment_type = ""
-                if payment_type != "":
-                    payment_type_tested = payment_type.id
-                    break
-            except pydantic.error_wrappers.ValidationError:
-                print("type has to contain only letters and have length from 3 to 15 characters")
-
-            
+        person_id_tested = validate_positive_int("Person ID number: ")
+        date_tested = validate_date("Date of purchase: ")
+        amount_tested = validate_positive_int("Cost: ")
+        payment_type_tested = validate_words("Category: ")
 
         return person_id_tested, date_tested, amount_tested, payment_type_tested
-            
+
+    def input_filters(self):
+        query = ""
+        return query
+
+    def read_query(connection, query):
+        cursor = connection.cursor()
+        result = None
+        try:
+            cursor.execute(query)
+            result = cursor.fetchall()
+            return result
+        except Error as err:
+            print(f"Error: '{err}'")
+
+def validate_positive_int(message:str):
+    while True:
+        try:
+            income = PositiveInt(id=input(message))
+            income_tested = income.id
+            if income_tested < 1000000000:
+                return income_tested
+            else:
+                print("invalid input")
+        except pydantic.error_wrappers.ValidationError:
+            print("invalid input")
+
+def validate_words(message:str):
+    while True:
+        try:
+            name = JustLetters(id=input(message))
+            for char in name.id:
+                if char not in string.ascii_letters:
+                    name = ""
+            if name != "":
+                name_tested = name.id
+                return name_tested
+        except pydantic.error_wrappers.ValidationError:
+            print("invalid input")
+
+def validate_date(message:str):
+    while True:
+        try:
+            date = Date(id=input(message))
+            if date.id > datetime(1980,1,1).date():
+                date_tested = date.id
+                return date_tested
+            print("date is only accepted in yyyy-mm-dd format")
+        except pydantic.error_wrappers.ValidationError:
+            print("date is only accepted in yyyy-mm-dd format")
+        
+
 
 finance_database = DataBase()
 while True:
