@@ -53,7 +53,7 @@ def execute_query(connection, query):
 
 create_person_table = """
 CREATE TABLE person (
-  person_id INT PRIMARY KEY,
+  person_id INT PRIMARY KEY AUTO_INCREMENT,
   person_name TEXT NOT NULL,
   monthly_income INT NOT NULL,
   spending_limit INT
@@ -62,45 +62,42 @@ CREATE TABLE person (
 
 create_payment_table = """
 CREATE TABLE payment (
-  payment_id INT PRIMARY KEY,
-  person INT,
-  date DATE NOT NULL,
-  amount INT NOT NULL,
-  type TEXT
+  payment_id INT PRIMARY KEY AUTO_INCREMENT,
+  person_id INT,
+  date DATE,
+  amount INT,
+  type TEXT,
+  FOREIGN KEY (person_id) REFERENCES person(person_id)
 );
 """
 
-alter_payment = """
-ALTER TABLE payment
-ADD FOREIGN KEY(person_id)
-REFERENCES person(person_id)
-ON DELETE SET NULL;
-"""
-
 pop_person = """
-INSERT INTO person VALUES
-(1,  'Maciej', '9000', '2000'),
-(2, 'Oliwia', '2400','2000'),
-(3, 'Blazej', '3500','1500');
+INSERT INTO person(person_name, monthly_income, spending_limit) 
+VALUES
+('Maciej', '9000', '2000'),
+('Oliwia', '2400','2000'),
+('Blazej', '3500','1500');
 """
 
 pop_payment = """
-INSERT INTO payment VALUES
-(1, 1, 2020-08-20, 350, 'equipment')
-(2, 1, 2020-08-21, 450, 'food')
-(3, 1, 2020-08-22, 150, 'growth')
-(4, 2, 2020-08-23, 650, 'equipment')
-(5, 2, 2020-08-20, 350, 'food')
-(6, 2, 2020-08-21, 450, 'growth')
-(7, 3, 2020-08-22, 150, 'equipment')
-(8, 3, 2020-08-23, 650, 'food')
+INSERT INTO payment(person_id, date, amount, type) 
+VALUES
+( 1, '2020-08-20', 350, 'equipment'),
+( 1, '2020-08-21', 450, 'food'),
+( 1, '2020-08-22', 150, 'growth'),
+( 2, '2020-08-23', 650, 'equipment'),
+( 2, '2020-08-20', 350, 'food'),
+( 2, '2020-08-21', 450, 'growth'),
+( 3, '2020-08-22', 150, 'equipment'),
+( 3, '2020-08-23', 650, 'food')
 """
+drop_database = "DROP DATABASE finance"
 connection = create_server_connection("localhost", "root", pw)
+execute_query(connection, drop_database)
 create_database_query = "CREATE DATABASE finance"
 create_database(connection, create_database_query)
 connection = create_db_connection("localhost", "root", pw, "finance")
 execute_query(connection, create_person_table)
 execute_query(connection, create_payment_table)
-execute_query(connection, alter_payment)
 execute_query(connection, pop_person)
 execute_query(connection, pop_payment)
