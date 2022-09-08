@@ -15,9 +15,9 @@ Q - quit
 
 2 - check your expenses, filtering by date, price, category, or user ID
 
-Planned functionality:
+3 - receive status of a user, along with spending-habit suggestions
 
-3 - receive a spending suggestion 
+Planned functionality:
 
 Docker implementation (approx. by 09.09.2022)
 
