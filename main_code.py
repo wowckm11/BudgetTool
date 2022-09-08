@@ -1,6 +1,6 @@
 from datetime import datetime
+from multiprocessing import connection
 import string
-from xml.dom import ValidationErr
 import mysql.connector
 from mysql.connector import Error
 import pandas as pd
@@ -17,9 +17,86 @@ class JustLetters(pydantic.BaseModel):
 class Date(pydantic.BaseModel):
     id: pydantic.PastDate
 
+def validate_positive_int(message:str):
+    while True:
+        try:
+            income = PositiveInt(id=input(message))
+            income_tested = income.id
+            if income_tested < 1000000000:
+                return income_tested
+            else:
+                print("invalid input")
+        except pydantic.error_wrappers.ValidationError:
+            print("invalid input")
 
+def validate_positive_int_null(message:str):
+    while True:
+        try:
+            income_or_null = input(message)
+            if income_or_null == "":
+                return None
+            income = PositiveInt(id= income_or_null)
+            income_tested = income.id
+            if income_tested < 1000000000:
+                return income_tested
+            else:
+                print("invalid input")
+        except pydantic.error_wrappers.ValidationError:
+            print("invalid input")
 
+def validate_words(message:str):
+    while True:
+        try:
+            name = JustLetters(id=input(message))
+            for char in name.id:
+                if char not in string.ascii_letters:
+                    name = ""
+            if name != "":
+                name_tested = name.id
+                return name_tested
+        except pydantic.error_wrappers.ValidationError:
+            print("invalid input")
 
+def validate_words_null(message:str):
+    while True:
+        try:
+            name_or_null = input(message)
+            if name_or_null == "":
+                return None
+            name = JustLetters(id=name_or_null)
+            for char in name.id:
+                if char not in string.ascii_letters:
+                    name = ""
+            if name != "":
+                name_tested = name.id
+                return name_tested
+        except pydantic.error_wrappers.ValidationError:
+            print("invalid input")
+
+def validate_date_null(message:str):
+    while True:
+        try:
+            date_or_null = input(message)
+            if date_or_null == "":
+                return None
+            date = Date(id=date_or_null)
+            if date.id > datetime(1980,1,1).date():
+                date_tested = date.id
+                return date_tested
+            print("date is only accepted in yyyy-mm-dd format")
+        except pydantic.error_wrappers.ValidationError:
+            print("date is only accepted in yyyy-mm-dd format")
+
+def validate_date(message:str):
+    while True:
+        try:
+            date = Date(id=input(message))
+            if date.id > datetime(1980,1,1).date():
+                date_tested = date.id
+                return date_tested
+            print("date is only accepted in yyyy-mm-dd format")
+        except pydantic.error_wrappers.ValidationError:
+            print("date is only accepted in yyyy-mm-dd format")
 
 
 def create_db_connection(host_name, user_name, user_password, db_name):
@@ -76,8 +153,10 @@ class DataBase:
             query = self.insert_payment()
             finance_database.execute_query(query)
         elif command == "2":
-            query = self.input_filters
-            finance_database.read_query(query)
+            query = self.apply_filters()
+            result = finance_database.read_query(query)
+            for item in result:
+                print(item)
         
     
     def insert_person(self):
@@ -102,12 +181,54 @@ class DataBase:
 
         return person_id_tested, date_tested, amount_tested, payment_type_tested
 
-    def input_filters(self):
-        query = ""
+    def apply_filters(self):
+        # price range, date, type, person
+        type_specified, price_specified_high, price_specified_low, date_specified_old, date_specified_new, person_specified = self.input_select_filters()
+        if type_specified is not None:
+            type_query = f"type = '{type_specified}' and "
+        else:
+            type_query = ""
+        if price_specified_high is not None:
+            price_query_high = f"amount < {price_specified_high} and "
+        else:
+            price_query_high = ""
+        if price_specified_low is not None:
+            price_query_low = f"amount > {price_specified_low} and "
+        else:
+            price_query_low = ""
+        if date_specified_old is not None:
+            date_query_old = f"date > '{date_specified_old}' and "
+        else:
+            date_query_old = ""
+        if date_specified_new is not None:
+            date_query_new = f"date < '{date_specified_new}' and "
+        else:
+            date_query_new = ""
+        if person_specified is not None:
+            person_query = f"person_id = {person_specified}"
+        else:
+            person_query = ""
+        query = f"SELECT * FROM payment WHERE {type_query}{price_query_high}{price_query_low}{date_query_old}{date_query_new}{person_query};"
+        if query.endswith(" and ;"):
+            query = query[:-5]
+        if query.endswith(" WHERE ;"):
+            query = "SELECT * FROM payment"
+        print(query)
         return query
 
-    def read_query(connection, query):
-        cursor = connection.cursor()
+    def input_select_filters(self):
+        print("select filters, input empty to turn a filter off")
+        type_specified = validate_words_null("Category: ")
+        price_specified_high =  validate_positive_int_null("Upper price filter: ")
+        price_specified_low =  validate_positive_int_null("Lower price filter: ")
+        date_specified_old = validate_date_null("Show purchase for dates NEWER than: ")
+        date_specified_new = validate_date_null("Show purchase for dates OLDER than: ")
+        person_specified = validate_positive_int_null("Show purchase for person with a specific ID: ")
+        
+        return type_specified, price_specified_high, price_specified_low, date_specified_old, date_specified_new, person_specified
+
+    def read_query(self, query, connecto=connection):
+        cursor = connecto.cursor()
         result = None
         try:
             cursor.execute(query)
@@ -115,42 +236,8 @@ class DataBase:
             return result
         except Error as err:
             print(f"Error: '{err}'")
+    
 
-def validate_positive_int(message:str):
-    while True:
-        try:
-            income = PositiveInt(id=input(message))
-            income_tested = income.id
-            if income_tested < 1000000000:
-                return income_tested
-            else:
-                print("invalid input")
-        except pydantic.error_wrappers.ValidationError:
-            print("invalid input")
-
-def validate_words(message:str):
-    while True:
-        try:
-            name = JustLetters(id=input(message))
-            for char in name.id:
-                if char not in string.ascii_letters:
-                    name = ""
-            if name != "":
-                name_tested = name.id
-                return name_tested
-        except pydantic.error_wrappers.ValidationError:
-            print("invalid input")
-
-def validate_date(message:str):
-    while True:
-        try:
-            date = Date(id=input(message))
-            if date.id > datetime(1980,1,1).date():
-                date_tested = date.id
-                return date_tested
-            print("date is only accepted in yyyy-mm-dd format")
-        except pydantic.error_wrappers.ValidationError:
-            print("date is only accepted in yyyy-mm-dd format")
         
 
 
