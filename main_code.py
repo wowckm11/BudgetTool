@@ -1,3 +1,4 @@
+from calendar import month
 from datetime import datetime, date
 from multiprocessing import connection
 import string
@@ -157,6 +158,8 @@ class DataBase:
             result = finance_database.read_query(query)
             for item in result:
                 print(item)
+        elif command =="3":
+            self.return_advice()
         
     
     def insert_person(self):
@@ -183,36 +186,47 @@ class DataBase:
 
     def apply_filters(self):
         # price range, date, type, person
-        type_specified, price_specified_high, price_specified_low, date_specified_old, date_specified_new, person_specified = self.input_select_filters()
+        (type_specified, price_specified_high, price_specified_low,
+         date_specified_old, date_specified_new, person_specified) = self.input_select_filters()
+        
         if type_specified is not None:
             type_query = f"type = '{type_specified}' and "
         else:
             type_query = ""
+
         if price_specified_high is not None:
             price_query_high = f"amount < {price_specified_high} and "
         else:
             price_query_high = ""
+
         if price_specified_low is not None:
             price_query_low = f"amount > {price_specified_low} and "
         else:
             price_query_low = ""
+
         if date_specified_old is not None:
             date_query_old = f"date > '{date_specified_old}' and "
         else:
             date_query_old = ""
+
         if date_specified_new is not None:
             date_query_new = f"date < '{date_specified_new}' and "
         else:
             date_query_new = ""
+
         if person_specified is not None:
             person_query = f"person_id = {person_specified}"
         else:
             person_query = ""
-        query = f"SELECT * FROM payment WHERE {type_query}{price_query_high}{price_query_low}{date_query_old}{date_query_new}{person_query};"
+
+        query = f"SELECT * FROM payment WHERE {type_query}{price_query_high}"
+        f"{price_query_low}{date_query_old}{date_query_new}{person_query};"
+
         if query.endswith(" and ;"):
             query = query[:-5]
-        if query.endswith(" WHERE ;"):
+        if query.endswith(" WHERE "):
             query = "SELECT * FROM payment"
+
         print(f"statemnt sent to database: {query}")
         return query
 
@@ -236,7 +250,55 @@ class DataBase:
             return result
         except Error as err:
             print(f"Error: '{err}'")
+
+    def specify_user_advice(self):
+        return validate_positive_int("User ID: ")
     
+    def filter_for_user(self, user):
+        last_month = date.today().replace(month=date.today().month-1)
+        query = f"SELECT * FROM payment WHERE person_id = {user} and date > '{last_month}'"
+        return query
+    
+    def query_user_info(self, user):
+        query = f"SELECT monthly_income, spending_limit, person_name FROM person WHERE person_id = {user}"
+        return query
+
+    def return_advice(self):
+        user = self.specify_user_advice()
+        spending = self.get_user_spending(user)
+        user_name, monthly_income, spending_limit = self.get_user_personal_data(user)
+        total = self.user_total_spending(spending)
+        print(f"{user_name}, you have spent {total} PLN in the last 30 days")
+        if total > spending_limit:
+            print(f"You disregarded your spending limit by {total- spending_limit} PLN")
+        print(f"You spent {total/monthly_income*100}% of your monthly income")
+
+    def get_user_spending(self, user):
+        query = self.filter_for_user(user)
+        data = self.read_query(query)
+        spending_temp_dict = {}
+        for item in data:
+            try:
+                spending_temp_dict[item[4]] += item[3]
+            except KeyError:
+                spending_temp_dict[item[4]] = item[3]
+        return spending_temp_dict
+    
+    def get_user_personal_data(self, user):
+        query_for_user = self.query_user_info(user)
+        user_data = self.read_query(query_for_user)
+        monthly_income = user_data[0][0]
+        spending_limit = user_data[0][1]
+        user_name = user_data[0][2]
+        return user_name, monthly_income, spending_limit
+
+    def user_total_spending(self, spending):
+        total_spent = 0
+        for key in spending:
+            total_spent += spending[key]
+        
+        return total_spent
+
 
         
 
