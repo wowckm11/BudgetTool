@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from multiprocessing import connection
 import string
 import mysql.connector
@@ -15,7 +15,7 @@ class JustLetters(pydantic.BaseModel):
     id: cons.constr(min_length=3, max_length=15)
 
 class Date(pydantic.BaseModel):
-    id: pydantic.PastDate
+    d: date = None
 
 def validate_positive_int(message:str):
     while True:
@@ -79,9 +79,9 @@ def validate_date_null(message:str):
             date_or_null = input(message)
             if date_or_null == "":
                 return None
-            date = Date(id=date_or_null)
-            if date.id > datetime(1980,1,1).date():
-                date_tested = date.id
+            date = Date(d=date_or_null)
+            if date.d > datetime(1980,1,1).date():
+                date_tested = date.d
                 return date_tested
             print("date is only accepted in yyyy-mm-dd format")
         except pydantic.error_wrappers.ValidationError:
@@ -90,13 +90,13 @@ def validate_date_null(message:str):
 def validate_date(message:str):
     while True:
         try:
-            date = Date(id=input(message))
-            if date.id > datetime(1980,1,1).date():
-                date_tested = date.id
+            date = Date(d=input(message))
+            if date.d > datetime(1980,1,1).date():
+                date_tested = date.d
                 return date_tested
             print("date is only accepted in yyyy-mm-dd format")
         except pydantic.error_wrappers.ValidationError:
-            print("date is only accepted in yyyy-mm-dd format")
+            print("date is only accepted in yyyy-mm-dd format and cannot be in the future")
 
 
 def create_db_connection(host_name, user_name, user_password, db_name):
@@ -213,7 +213,7 @@ class DataBase:
             query = query[:-5]
         if query.endswith(" WHERE ;"):
             query = "SELECT * FROM payment"
-        print(query)
+        print(f"statemnt sent to database: {query}")
         return query
 
     def input_select_filters(self):
