@@ -30,6 +30,14 @@ def validate_positive_int(message:str):
         except pydantic.error_wrappers.ValidationError:
             print("invalid input")
 
+def validate_positive_int_gui(number):
+    while True:
+        income = PositiveInt(id=number)
+        income_tested = income.id
+        if income_tested < 1000000000:
+            return income_tested
+
+
 def validate_positive_int_null(message:str):
     while True:
         try:
@@ -149,13 +157,36 @@ class DataBase:
 
         if command == "0":
             query = self.insert_person()
-            finance_database.execute_query(query)
+            self.execute_query(query)
         elif command =="1":
             query = self.insert_payment()
-            finance_database.execute_query(query)
+            self.execute_query(query)
         elif command == "2":
             query = self.apply_filters()
-            result = finance_database.read_query(query)
+            result = self.read_query(query)
+            for item in result:
+                print(item)
+        elif command =="3":
+            self.return_advice()
+        elif command =="4":
+            query = """
+            SELECT * FROM person;
+            """
+            result = self.read_query(query)
+            for item in result:
+                print(item)
+    
+    def execute_gui_command(self, command):
+        
+        if command == "0":
+            query = self.insert_person_gui()
+            self.execute_query(query)
+        elif command =="1":
+            query = self.insert_payment()
+            self.execute_query(query)
+        elif command == "2":
+            query = self.apply_filters()
+            result = self.read_query(query)
             for item in result:
                 print(item)
         elif command =="3":
@@ -167,9 +198,20 @@ class DataBase:
         name = f'"{name}"'
         query = f"INSERT INTO person(person_name, monthly_income, spending_limit) VALUES ({name}, {income}, {limit})"
         return query
+    
+    def insert_person_gui(self, name, income, limit):
+        name = f'"{name}"'
+        query = f"INSERT INTO person(person_name, monthly_income, spending_limit) VALUES ({name}, {income}, {limit})"
+        return query
      
     def insert_payment(self):
         person_id, date, amount, payment_type = self.input_new_payment()
+        payment_type = f'"{payment_type}"'
+        date = f'"{date}"'
+        query = f"INSERT INTO payment(person_id, date, amount, type) VALUES({person_id}, {date}, {amount}, {payment_type})"
+        return query
+    
+    def insert_payment_gui(self,person_id, date, amount, payment_type):
         payment_type = f'"{payment_type}"'
         date = f'"{date}"'
         query = f"INSERT INTO payment(person_id, date, amount, type) VALUES({person_id}, {date}, {amount}, {payment_type})"
@@ -301,12 +343,12 @@ class DataBase:
 
 
         
+if __name__ == "__main__":
+    finance_database = DataBase()
+    while True:
+        command = finance_database.get_input()
+        if command == "Q":
+            break
+        else:
+            finance_database.execute_command(command)
 
-
-finance_database = DataBase()
-while True:
-    command = finance_database.get_input()
-    if command == "Q":
-        break
-    else:
-        finance_database.execute_command(command)
