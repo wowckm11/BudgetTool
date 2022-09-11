@@ -9,8 +9,9 @@ def create_server_connection(host_name, user_name, user_password):
         connection = mysql.connector.connect(
             host=host_name,
             user=user_name,
-            passwd=user_password
-        )
+            passwd=user_password,
+            port = 3306
+            )
         print("MySQL Database connection successful")
     except Error as err:
         print(f"Error: '{err}'")
@@ -32,7 +33,8 @@ def create_db_connection(host_name, user_name, user_password, db_name):
             host=host_name,
             user=user_name,
             passwd=user_password,
-            database = db_name)
+            database = db_name,
+            port = 3306)
                 
         print("MySQL Database connection successful")
     except Error as err:
@@ -70,10 +72,10 @@ FOREIGN KEY (person_id) REFERENCES person(person_id)
 );
 """
 
-connection = create_server_connection("localhost", "root", "root")
+connection = create_server_connection('mydb','root','root')
 create_database_query = "CREATE DATABASE finance"
 create_database(connection, create_database_query)
-connection = create_db_connection("localhost", "root", "root", "finance")
+connection = create_db_connection('mydb', "root", "root", "finance")
 execute_query(connection, create_person_table)
 execute_query(connection, create_payment_table)
 

@@ -1,6 +1,5 @@
-from calendar import month
+
 from datetime import datetime, date
-from multiprocessing import connection
 import string
 from xml.dom import ValidationErr
 import mysql.connector
@@ -8,7 +7,6 @@ from mysql.connector import Error
 import pandas as pd
 import pydantic_constrained_types as cons
 import pydantic
-
 
 class PositiveInt(pydantic.BaseModel):
     id: cons.PositiveInt
@@ -136,7 +134,8 @@ def create_db_connection(host_name, user_name, user_password, db_name):
                 host=host_name,
                 user=user_name,
                 passwd=user_password,
-                database = db_name)
+                database = db_name,
+                port = 3306)
                     
             print("MySQL Database connection successful")
         except Error as err:
@@ -145,7 +144,7 @@ def create_db_connection(host_name, user_name, user_password, db_name):
 
 
 class DataBase:
-    connection = create_db_connection("localhost", "root", "root", "finance")
+    connection = create_db_connection("mydb", "root", "root", "finance")
     def __init__(self):
         pass
     

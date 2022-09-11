@@ -3,6 +3,7 @@ from tkinter import Entry
 import PySimpleGUI as sg
 import os.path
 from main_code import *
+import startup
 def create_window_person():
     person_layout = [
             [sg.Text("Person Name"),sg.Input()],
