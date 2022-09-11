@@ -331,7 +331,7 @@ class DataBase:
 
         if query.endswith(" and ;"):
             query = query[:-5]
-        if query.endswith(" WHERE "):
+        if query.endswith(" WHERE ;"):
             query = "SELECT * FROM payment"
 
         print(f"statemnt sent to database: {query}")
@@ -380,6 +380,16 @@ class DataBase:
         if total > spending_limit:
             print(f"You disregarded your spending limit by {total- spending_limit} PLN")
         print(f"You spent {total/monthly_income*100}% of your monthly income")
+    
+    def return_advice_gui(self, user):
+        spending = self.get_user_spending(user)
+        user_name, monthly_income, spending_limit = self.get_user_personal_data(user)
+        total = self.user_total_spending(spending)
+        return_string = f"{user_name}, you have spent {total} PLN in the last 30 days\n"
+        if total > spending_limit:
+            return_string += (f"You disregarded your spending limit by {total- spending_limit} PLN\n")
+        return_string += (f"You spent {total/monthly_income*100:.1f}% of your monthly income\n")
+        return return_string
 
     def get_user_spending(self, user):
         query = self.filter_for_user(user)
@@ -417,4 +427,5 @@ if __name__ == "__main__":
             break
         else:
             finance_database.execute_command(command)
+            
 
