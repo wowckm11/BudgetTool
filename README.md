@@ -1,4 +1,4 @@
-# Database_repo
+# BudgetTool
 
 Budgeting app that allows you to track your expenses and receive saving suggestions based on your spending habbits.
 
