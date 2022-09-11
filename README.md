@@ -1,8 +1,13 @@
 # Database_repo
 
-Budgeting app that allows you to track your expenses and receive various saving suggestions based on your spending habbits.
+Budgeting app that allows you to track your expenses and receive saving suggestions based on your spending habbits.
 
 App is written in Python3.8, saves data in a MySQL database, and allows the user to operate on the database via python code using mysql.connector library.
+
+database structure:
+
+![image](https://user-images.githubusercontent.com/112565629/189530547-82834d78-39fa-48e6-9a6d-90ee47b2633c.png)
+
 
 
 app has barebone GUI, requires a running MySQL server on your machine and has listed commands:
