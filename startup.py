@@ -1,7 +1,6 @@
 import mysql.connector
 from mysql.connector import Error
 import pandas as pd
-pw = "Archespor2"
 
 
 def create_server_connection(host_name, user_name, user_password):
@@ -71,10 +70,10 @@ FOREIGN KEY (person_id) REFERENCES person(person_id)
 );
 """
 
-connection = create_server_connection("localhost", "root", pw)
+connection = create_server_connection("localhost", "root", "root")
 create_database_query = "CREATE DATABASE finance"
 create_database(connection, create_database_query)
-connection = create_db_connection("localhost", "root", pw, "finance")
+connection = create_db_connection("localhost", "root", "root", "finance")
 execute_query(connection, create_person_table)
 execute_query(connection, create_payment_table)
 
