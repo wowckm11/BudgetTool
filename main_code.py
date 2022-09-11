@@ -7,6 +7,7 @@ from mysql.connector import Error
 import pandas as pd
 import pydantic_constrained_types as cons
 import pydantic
+import startup
 
 class PositiveInt(pydantic.BaseModel):
     id: cons.PositiveInt
