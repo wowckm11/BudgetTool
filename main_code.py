@@ -2,6 +2,7 @@ from calendar import month
 from datetime import datetime, date
 from multiprocessing import connection
 import string
+from xml.dom import ValidationErr
 import mysql.connector
 from mysql.connector import Error
 import pandas as pd
@@ -31,11 +32,12 @@ def validate_positive_int(message:str):
             print("invalid input")
 
 def validate_positive_int_gui(number):
-    while True:
+
         income = PositiveInt(id=number)
         income_tested = income.id
         if income_tested < 1000000000:
             return income_tested
+
 
 
 def validate_positive_int_null(message:str):
@@ -55,7 +57,6 @@ def validate_positive_int_null(message:str):
 
 def validate_words(message:str):
     while True:
-        try:
             name = JustLetters(id=input(message))
             for char in name.id:
                 if char not in string.ascii_letters:
@@ -63,8 +64,17 @@ def validate_words(message:str):
             if name != "":
                 name_tested = name.id
                 return name_tested
-        except pydantic.error_wrappers.ValidationError:
-            print("invalid input")
+
+
+def validate_words_gui(word:str):
+            name = JustLetters(id=word)
+            for char in name.id:
+                if char not in string.ascii_letters:
+                    name = ""
+            if name != "":
+                name_tested = name.id
+                return name_tested
+
 
 def validate_words_null(message:str):
     while True:
@@ -106,6 +116,17 @@ def validate_date(message:str):
             print("date is only accepted in yyyy-mm-dd format")
         except pydantic.error_wrappers.ValidationError:
             print("date is only accepted in yyyy-mm-dd format and cannot be in the future")
+
+def validate_date_gui(date_input:str):
+
+        date = Date(d=date_input)
+        if date.d > datetime(1980,1,1).date():
+            date_tested = date.d
+            return date_tested
+        raise ValidationErr
+
+
+
 
 
 def create_db_connection(host_name, user_name, user_password, db_name):
@@ -261,8 +282,8 @@ class DataBase:
         else:
             person_query = ""
 
-        query = f"SELECT * FROM payment WHERE {type_query}{price_query_high}"
-        f"{price_query_low}{date_query_old}{date_query_new}{person_query};"
+        query = (f"SELECT * FROM payment WHERE {type_query}{price_query_high}"
+        +f"{price_query_low}{date_query_old}{date_query_new}{person_query};")
 
         if query.endswith(" and ;"):
             query = query[:-5]
@@ -271,6 +292,51 @@ class DataBase:
 
         print(f"statemnt sent to database: {query}")
         return query
+
+    def apply_filters_gui(self,type_specified, price_specified_high, price_specified_low,
+         date_specified_old, date_specified_new, person_specified):
+        
+        if type_specified is not None:
+            type_query = f"type = '{type_specified}' and "
+        else:
+            type_query = ""
+
+        if price_specified_high is not None:
+            price_query_high = f"amount < {price_specified_high} and "
+        else:
+            price_query_high = ""
+
+        if price_specified_low is not None:
+            price_query_low = f"amount > {price_specified_low} and "
+        else:
+            price_query_low = ""
+
+        if date_specified_old is not None:
+            date_query_old = f"date > '{date_specified_old}' and "
+        else:
+            date_query_old = ""
+
+        if date_specified_new is not None:
+            date_query_new = f"date < '{date_specified_new}' and "
+        else:
+            date_query_new = ""
+
+        if person_specified is not None:
+            person_query = f"person_id = {person_specified}"
+        else:
+            person_query = ""
+
+        query = (f"SELECT * FROM payment WHERE {type_query}{price_query_high}"
+        f"{price_query_low}{date_query_old}{date_query_new}{person_query};")
+
+        if query.endswith(" and ;"):
+            query = query[:-5]
+        if query.endswith(" WHERE "):
+            query = "SELECT * FROM payment"
+
+        print(f"statemnt sent to database: {query}")
+        return query
+
 
     def input_select_filters(self):
         print("select filters, input empty to turn a filter off")
