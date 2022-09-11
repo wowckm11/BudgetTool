@@ -145,7 +145,7 @@ def create_db_connection(host_name, user_name, user_password, db_name):
 
 
 class DataBase:
-    connection = create_db_connection("localhost", "root", "root", "finance")
+    connection = create_db_connection("localhost", "root", "Archespor2", "finance")
     def __init__(self):
         pass
     
