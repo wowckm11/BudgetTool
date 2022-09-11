@@ -5,20 +5,28 @@ Budgeting app that allows you to track your expenses and receive various saving 
 App is written in Python3.8, saves data in a MySQL database, and allows the user to operate on the database via python code using mysql.connector library.
 
 
-As of rn, app works in the terminal, requires a running MySQL server on your machine and has listed commands:
+app has barebone GUI, requires a running MySQL server on your machine and has listed commands:
 
-Q - quit
 
-0 - add a person to user's database
 
-1 - add an expenditure
+- add a person to user's database
 
-2 - check your expenses, filtering by date, price, category, or user ID
+- add an expenditure
 
-3 - receive status of a user, along with spending-habit suggestions
+- check your expenses, filtering by date, price, category, or user ID
+
+- receive stats of a user, based on last 30 days of spending
+
+- fill database with "stock" info to check out functionality
+
+- RESET database
+
+
+
+
 
 Planned functionality:
 
-Docker implementation (approx. by 09.09.2022)
+Docker implementation
 
-GUI and QoL (approx. 16.09.2022 due to holiday leave)
+
