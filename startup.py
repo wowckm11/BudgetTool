@@ -1,9 +1,10 @@
+from distutils.file_util import write_file
 import mysql.connector
 from mysql.connector import Error
 import pandas as pd
 
 
-def create_server_connection(host_name, user_name, user_password):
+def create_server_connection_startup(host_name, user_name, user_password):
     connection = None
     try:
         connection = mysql.connector.connect(
@@ -18,7 +19,7 @@ def create_server_connection(host_name, user_name, user_password):
 
     return connection
 
-def create_database(connection, query):
+def create_database_startup(connection, query):
     cursor = connection.cursor()
     try:
         cursor.execute(query)
@@ -26,7 +27,7 @@ def create_database(connection, query):
     except Error as err:
         print(f"Error: '{err}'")
 
-def create_db_connection(host_name, user_name, user_password, db_name):
+def create_db_connection_startup(host_name, user_name, user_password, db_name):
     connection = None
     try:
         connection = mysql.connector.connect(
@@ -42,7 +43,7 @@ def create_db_connection(host_name, user_name, user_password, db_name):
 
     return connection
 
-def execute_query(connection, query):
+def execute_query_startup(connection, query):
     cursor = connection.cursor()
     try:
         cursor.execute(query)
@@ -72,10 +73,9 @@ FOREIGN KEY (person_id) REFERENCES person(person_id)
 );
 """
 
-connection = create_server_connection('mydb','root','root')
+connection = create_server_connection_startup('mydb','root','root')
 create_database_query = "CREATE DATABASE finance"
-create_database(connection, create_database_query)
-connection = create_db_connection('mydb', "root", "root", "finance")
-execute_query(connection, create_person_table)
-execute_query(connection, create_payment_table)
-
+create_database_startup(connection, create_database_query)
+connection = create_db_connection_startup('mydb', "root", "root", "finance")
+execute_query_startup(connection, create_person_table)
+execute_query_startup(connection, create_payment_table)

@@ -7,6 +7,8 @@ services:
             - "32001:3306"
         environment:
             MYSQL_ROOT_PASSWORD: root
+        volumes:
+            - my_db_volume:/etc/mydb
     app:
         container_name: myapp
         links:
@@ -14,7 +16,6 @@ services:
         build: ./
         ports:
             - "5001:5000"
-        environment:
-            - DISPLAY=127.0.0.1:0.0
-        volumes:
-            - /tmp/.X11-unix:/tmp/.X11-unix
+volumes:
+        my_db_volume:
+            external: false
