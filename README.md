@@ -21,12 +21,6 @@ app has barebone GUI, requires a running MySQL server on your machine and has li
 
 - RESET database
 
-
-
-
-
-Planned functionality:
-
-Docker implementation
-
+- this branch assumes running your DB on a docker container via:
+docker run --name root -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root -d mysql
 
