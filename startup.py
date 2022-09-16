@@ -73,9 +73,9 @@ FOREIGN KEY (person_id) REFERENCES person(person_id)
 );
 """
 
-connection = create_server_connection_startup('mydb','root','root')
+connection = create_server_connection_startup('localhost','root','root')
 create_database_query = "CREATE DATABASE finance"
 create_database_startup(connection, create_database_query)
-connection = create_db_connection_startup('mydb', "root", "root", "finance")
+connection = create_db_connection_startup('localhost', "root", "root", "finance")
 execute_query_startup(connection, create_person_table)
 execute_query_startup(connection, create_payment_table)

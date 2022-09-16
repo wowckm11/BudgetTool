@@ -9,13 +9,6 @@ services:
             MYSQL_ROOT_PASSWORD: root
         volumes:
             - my_db_volume:/etc/mydb
-    app:
-        container_name: myapp
-        links:
-            - "db"
-        build: ./
-        ports:
-            - "5001:5000"
 volumes:
         my_db_volume:
             external: false
