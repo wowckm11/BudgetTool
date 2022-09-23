@@ -2,15 +2,15 @@
 
 Budgeting app that allows you to track your expenses and receive saving suggestions based on your spending habbits.
 
-App is written in Python3.8, saves data in a MySQL database, and allows the user to operate on the database via python code using mysql.connector library.
+App is written in Python3.8, saves data in a PostgreSQL database, and allows the user to operate on the database via python code using.
 
 database structure:
 
-![image](https://user-images.githubusercontent.com/112565629/189530547-82834d78-39fa-48e6-9a6d-90ee47b2633c.png)
+work in progress
 
 
 
-app has barebone GUI, requires a running MySQL server on your machine and has listed commands:
+app has barebone GUI, requires a running postgreSQL server on your machine and has listed commands:
 
 ![image](https://user-images.githubusercontent.com/112565629/189525874-9005891d-77b7-463b-933f-9d4257fd4ad4.png)
 
@@ -35,6 +35,4 @@ more strict filtering will narrow the results down:
 
 Planned functionality:
 
-Docker implementation
-
-
+Redash connection and dashboard
