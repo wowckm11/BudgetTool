@@ -1,5 +1,6 @@
 from tkinter import Entry
 import PySimpleGUI as sg
+import pandas as pd
 
 from main_code import *
 
@@ -217,6 +218,18 @@ def payment_input(person_layout):
             return None
 
         return id_checked, amount_checked, date_checked, venue_checked, type_checked
+def result_text_window(result):
+
+    layout = [
+                [sg.Multiline(default_text=result,size=(70,20))],
+                [sg.Button("close",key="-EXIT-")]
+                ]
+    result_window = sg.Window("Results", layout)
+    while True:
+        event, values = result_window.read()
+        if event == "-EXIT-" or event == sg.WIN_CLOSED:
+            result_window.close()
+            break
 
 def main_window():
     file_list_column = [
@@ -230,8 +243,8 @@ def main_window():
             sg.Button("", key= "-SEARCH-"),
             sg.Text("search through payments"),
 
-            sg.Button("", key= "-STATS-"),
-            sg.Text("print user stats"),
+            # sg.Button("", key= "-STATS-"),
+            # sg.Text("print user stats"),
 
             sg.Button("", key= "-USERS-"),
             sg.Text("print users"),
@@ -276,26 +289,23 @@ def main_window():
                 sg.popup(custom_text= "Payment entry added succesfuly", no_titlebar=True)
         
         if event == "-SEARCH-":
-            search_results = ""
             popup = create_window_total_search()
             if popup is not None:
                 category_checked, max_price_checked, min_price_checked, date_old_checked, date_new_checked, person_id_checked, venue_checked = popup
                 query = finance_database.apply_filters_gui(category_checked, max_price_checked, min_price_checked, date_old_checked, date_new_checked, person_id_checked, venue_checked)
-                for item in finance_database.read_query(query):
-                    search_results += f"{item}\n"
-                sg.popup(search_results)
+                dt = pd.read_sql_query(query,finance_database.engine)
+                result_text_window(dt)
         
         if event == "-USERS-":
-            search_results = "ID / NAME / INCOME / LIMIT\n"
             query = "SELECT * FROM person"
-            for item in finance_database.read_query(query):
-                search_results += f"{item}\n"
-            sg.popup(search_results)
+            dt = pd.read_sql_query(query,finance_database.engine)
+            result_text_window(dt)
+            
         
-        if event == "-STATS-":
-            popup = create_window_stats()
-            if popup is not None:
-                sg.popup(finance_database.return_advice_gui(popup))
+        # if event == "-STATS-":
+        #     popup = create_window_stats()
+        #     if popup is not None:
+        #         sg.popup(finance_database.return_advice_gui(popup))
 
         # if event == "-POP-":
         #     pop_person = """
