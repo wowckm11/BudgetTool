@@ -1,8 +1,13 @@
+from cProfile import label
+from turtle import left
+from winreg import QueryInfoKey
 import pydantic_constrained_types as cons
 import pydantic
 import string
 import psycopg2
 import sqlalchemy as sql
+import matplotlib.pyplot as plt
+import pandas as pd
 
 from datetime import datetime, date
 from xml.dom import ValidationErr
@@ -75,6 +80,12 @@ def create_engine_config():
     hostname, database_name, user, password = params["host"], params["database"], params["user"], params["password"]
     engine = sql.create_engine(f'postgresql+psycopg2://{user}:{password}@{hostname}/{database_name}')
     return engine
+
+def return_plot_job(dataframe,plot_type = "bar", title_window = ""):
+
+    dataframe.plot(x = dataframe.columns[0], y =[dataframe.columns[1],dataframe.columns[2]],kind = plot_type, title = title_window)
+    plt.show()
+
 class DataBase:
     engine = create_engine_config()
     connection = create_db_connection()
@@ -181,48 +192,106 @@ class DataBase:
             return result
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
-
-    # def filter_for_user(self, user):
-    #     last_month = date.today().replace(month=date.today().month-1)
-    #     query = f"SELECT * FROM payment WHERE person_id = {user} and date > '{last_month}'"
-    #     return query
     
-    # def query_user_info(self, user):
-    #     query = f"SELECT monthly_income, spending_limit, person_name FROM person WHERE person_id = {user}"
-    #     return query
-
-    # def return_advice_gui(self, user):
-    #     spending = self.get_user_spending(user)
-    #     user_name, monthly_income, spending_limit = self.get_user_personal_data(user)
-    #     total = self.user_total_spending(spending)
-    #     return_string = f"{user_name}, you have spent {total} PLN in the last 30 days\n"
-    #     if total > spending_limit:
-    #         return_string += (f"You disregarded your spending limit by {total- spending_limit} PLN\n")
-    #     return_string += (f"You spent {total/monthly_income*100:.1f}% of your monthly income\n")
-    #     return return_string
-
-    # def get_user_spending(self, user):
-    #     query = self.filter_for_user(user)
-    #     data = self.read_query(query)
-    #     spending_temp_dict = {}
-    #     for item in data:
-    #         try:
-    #             spending_temp_dict[item[4]] += item[3]
-    #         except KeyError:
-    #             spending_temp_dict[item[4]] = item[3]
-    #     return spending_temp_dict
-    
-    # def get_user_personal_data(self, user):
-    #     query_for_user = self.query_user_info(user)
-    #     user_data = self.read_query(query_for_user)
-    #     monthly_income = user_data[0][0]
-    #     spending_limit = user_data[0][1]
-    #     user_name = user_data[0][2]
-    #     return user_name, monthly_income, spending_limit
-
-    # def user_total_spending(self, spending):
-    #     total_spent = 0
-    #     for key in spending:
-    #         total_spent += spending[key]
+    def job_stats(self, variant = 'yearly'):
+        #long term spendings, rent etc
+        query1 = """
+        select person.job as Job, sum(long_term_spending.amount*long_term_spending.times)/count(distinct person.person_name) as spending FROM person
+INNER JOIN long_term_spending ON long_term_spending.person_id = person.person_id
+WHERE DATE_PART('day', now() - start_date::timestamp) <= 365
+Group by job;
+        """
+        #everyday spendings
+        query2 = """
+        select person.job as Job, (sum(spendings.amount))/count(distinct person.person_name) as spending 
+		FROM person
+INNER JOIN spendings ON spendings.person_id = person.person_id
+WHERE DATE_PART('day', now() - spending_date::timestamp) <= 365
+Group by job;
+        """
+        #income per job
+        query3 = """
+    select person.job as Job, (sum(incomes.amount))/count(distinct person.person_name) as incomes FROM person
+INNER JOIN incomes ON incomes.person_id = person.person_id
+WHERE DATE_PART('day', now() - income_date::timestamp) <= 365
+Group by job;
+    """
         
-        # return total_spent
+        incomes = pd.read_sql_query(query3, self.engine)
+        long_spend = pd.read_sql_query(query1, self.engine)
+        dt = pd.read_sql_query(query2, self.engine)
+        dt.spending = dt.spending + long_spend.spending
+        dt['total income'] = incomes.incomes
+        if variant == 'y':
+            return_plot_job(dt, title_window ='Average yearly income and spending for jobs')
+        elif variant == 'm':
+            dt.spending = dt.spending.map(lambda p: p/12)
+            dt['total income'] = dt['total income'].map(lambda p: p/12)
+            return_plot_job(dt, title_window ='Average monthly income and spending for jobs')
+        elif variant == 'd':
+            dt.spending = dt.spending.map(lambda p: p/365)
+            dt['total income'] = dt['total income'].map(lambda p: p/365)
+            return_plot_job(dt, title_window ='Average daily income and spending for jobs')
+
+    def money_stats(self):
+        #long term spendings, rent etc
+        query1 = """
+        select person.person_id as id, 
+sum(long_term_spending.amount*long_term_spending.times)/count(distinct person.person_id) as spending
+FROM person
+LEFT OUTER JOIN long_term_spending ON long_term_spending.person_id = person.person_id
+WHERE DATE_PART('day', now() - start_date::timestamp) <= 365
+GROUP BY person.person_id;
+        """
+        #everyday spendings
+        query2 = """
+        select person.person_id as id, (sum(spendings.amount))/count(distinct person.person_name) as spending 
+		FROM person
+INNER JOIN spendings ON spendings.person_id = person.person_id
+WHERE DATE_PART('day', now() - spending_date::timestamp) <= 365
+GROUP BY person.person_id;
+        """
+        #income per job
+        query3 = """
+    select person.person_id as id, (sum(incomes.amount))/count(distinct person.person_name) as incomes FROM person
+INNER JOIN incomes ON incomes.person_id = person.person_id
+WHERE DATE_PART('day', now() - income_date::timestamp) <= 365
+GROUP BY person.person_id;
+    """
+        incomes = pd.read_sql_query(query3, self.engine)
+        long_spend = pd.read_sql_query(query1, self.engine)
+        long_spend = long_spend.set_index('id')
+        dt = pd.read_sql_query(query2, self.engine)
+        dt = dt.join(long_spend.spending, 'id',rsuffix='_l')
+        dt['total spending'] = dt.spending.fillna(0) + dt.spending_l.fillna(0)
+        dt = dt.drop('spending', axis=1)
+        dt = dt.drop('spending_l', axis=1)
+        dt['income'] = incomes.incomes
+        dt['money saved'] = dt.income - dt["total spending"]
+        dt.income = dt.income.map(lambda p: p/12)
+        dt = dt.drop('total spending', axis=1)
+        return_plot_job(dt,title_window= 'Money saved compared to monthly income')
+    
+    def category_stats(self):
+        query = """
+        select category, sum(spendings.amount) as amount
+		FROM spendings
+WHERE DATE_PART('day', now() - spending_date::timestamp) <= 365
+Group by category;
+        """
+        dt = pd.read_sql_query(query, self.engine)
+        dt.plot(x = dt.columns[0], y =dt.columns[1],kind = 'bar', title='Spending per category')
+        plt.show()
+
+    def venue_stats(self):
+        query = """
+        select venue, sum(spendings.amount) as amount
+		FROM spendings
+WHERE DATE_PART('day', now() - spending_date::timestamp) <= 365
+Group by venue
+ORDER BY amount DESC
+LIMIT 10;
+        """
+        dt = pd.read_sql_query(query, self.engine)
+        dt.plot(x = dt.columns[0], y =dt.columns[1],kind = 'bar', title="top 10 venues by spending")
+        plt.show()

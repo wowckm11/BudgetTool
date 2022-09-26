@@ -2,6 +2,7 @@ from tkinter import Entry
 import PySimpleGUI as sg
 import pandas as pd
 
+
 from main_code import *
 
 # name, job, limit, birthday, months_of_grace
@@ -28,8 +29,12 @@ def create_window_person():
 
 def create_window_stats():
     person_layout = [
-            [sg.Text("Person ID"),sg.Input()],
-            [sg.Button("confirm", key = "-ACCEPT-"), sg.Button("cancel", key= "-CLOSE-")]
+            [sg.Button("", key="-JOB-"),sg.Text("Job stats")],
+            [sg.Button("", key="-CURRENT-"),sg.Text("Available money")],
+            [sg.Button("", key="-CATEGORY-"),sg.Text("Category stats")],
+            [sg.Button("", key="-VENUE-"),sg.Text("Popular venues")],
+            [sg.Button("", key="-PERSONAL-"),sg.Text("Personal summary")],
+            [sg.Button("cancel", key= "-CLOSE-")]
             ]
             
     window_popup = sg.Window("choose a person!", person_layout)
@@ -38,10 +43,22 @@ def create_window_stats():
         if event == "-CLOSE-" or event == sg.WIN_CLOSED:
             window_popup.close()
             return None
-        elif event == "-ACCEPT-":
-                if stats_input(person_layout) is not None:
-                    window_popup.close()
-                    return stats_input(person_layout)
+        elif event == "-JOB-":
+            window_popup.close()
+            return "-JOB-"
+        elif event == "-CURRENT-":
+            window_popup.close()
+            return "-CURRENT-"
+        elif event == "-CATEGORY-":
+            window_popup.close()
+            return "-CATEGORY-"
+        elif event == "-VENUE-":
+            window_popup.close()
+            return "-VENUE-"
+        elif event == "-PERSONAL-":
+            window_popup.close()
+            return "-PERSONAL-"
+
 
 def create_window_payment():
     payment_layout = [
@@ -86,14 +103,6 @@ def create_window_total_search():
                 if search_input(search_layout) is not None:
                     window_popup.close()
                     return search_input(search_layout)
-
-def stats_input(person_layout):
-        person_name = person_layout[0][1].get()
-        try:
-            person_checked = validate_positive_int_gui(person_name)
-        except pydantic.error_wrappers.ValidationError:
-            return None
-        return person_checked
 
 def search_input(search_layout):
         category = search_layout[0][1].get()
@@ -218,6 +227,7 @@ def payment_input(person_layout):
             return None
 
         return id_checked, amount_checked, date_checked, venue_checked, type_checked
+
 def result_text_window(result):
 
     layout = [
@@ -231,6 +241,25 @@ def result_text_window(result):
             result_window.close()
             break
 
+def stat_date_choice():
+    layout = [
+        [sg.Button("yearly", key = "-Y-")],
+        [sg.Button("monthly", key = "-M-")],
+        [sg.Button("daily", key = "-D-")]
+    ]
+    choice_window = sg.Window("Choose time format!", layout)
+    while True:
+        event, values = choice_window.read()
+        if event == "-Y-" or event == sg.WIN_CLOSED:
+            choice_window.close()
+            return 'y'
+        elif event == "-M-":
+            choice_window.close()
+            return 'm'
+        elif event == "-D-":
+            choice_window.close()
+            return 'd'
+
 def main_window():
     file_list_column = [
         [
@@ -243,8 +272,8 @@ def main_window():
             sg.Button("", key= "-SEARCH-"),
             sg.Text("search through payments"),
 
-            # sg.Button("", key= "-STATS-"),
-            # sg.Text("print user stats"),
+            sg.Button("", key= "-STATS-"),
+            sg.Text("print user stats"),
 
             sg.Button("", key= "-USERS-"),
             sg.Text("print users"),
@@ -294,7 +323,8 @@ def main_window():
                 category_checked, max_price_checked, min_price_checked, date_old_checked, date_new_checked, person_id_checked, venue_checked = popup
                 query = finance_database.apply_filters_gui(category_checked, max_price_checked, min_price_checked, date_old_checked, date_new_checked, person_id_checked, venue_checked)
                 dt = pd.read_sql_query(query,finance_database.engine)
-                result_text_window(dt)
+                dt_str = dt.to_string()
+                result_text_window(dt_str)
         
         if event == "-USERS-":
             query = "SELECT * FROM person"
@@ -302,64 +332,21 @@ def main_window():
             result_text_window(dt)
             
         
-        # if event == "-STATS-":
-        #     popup = create_window_stats()
-        #     if popup is not None:
-        #         sg.popup(finance_database.return_advice_gui(popup))
+        if event == "-STATS-":
+            popup = create_window_stats()
+            if popup is not None:
+                if popup == "-JOB-":
+                    variant = stat_date_choice()
+                    finance_database.job_stats(variant)
+                if popup == "-CURRENT-":
+                    finance_database.money_stats()
+                if popup == "-CATEGORY-":
+                    finance_database.category_stats()
+                if popup == "-VENUE-":
+                    finance_database.venue_stats()
+                if popup == "-PERSONAL-":
+                    pass
 
-        # if event == "-POP-":
-        #     pop_person = """
-        #         INSERT INTO person(person_name, monthly_income, spending_limit) 
-        #         VALUES
-        #         ('Maciej', '9000', '2000'),
-        #         ('Oliwia', '2400','2000'),
-        #         ('Blazej', '3500','1500');
-        #         """
-        #     pop_payment = """
-        #         INSERT INTO payment(person_id, date, amount, type) 
-        #         VALUES
-        #         ( 1, '2020-08-20', 350, 'equipment'),
-        #         ( 1, '2020-08-21', 450, 'food'),
-        #         ( 1, '2020-08-22', 150, 'growth'),
-        #         ( 2, '2020-08-23', 650, 'equipment'),
-        #         ( 2, '2020-08-20', 350, 'food'),
-        #         ( 2, '2020-08-21', 450, 'growth'),
-        #         ( 3, '2020-08-22', 150, 'equipment'),
-        #         ( 3, '2020-08-23', 650, 'food'),
-        #         ( 1, '2020-08-20', 650, 'equipment'),
-        #         ( 1, '2020-08-21', 150, 'food'),
-        #         ( 1, '2020-08-22', 2150, 'growth'),
-        #         ( 2, '2020-08-23', 62130, 'equipment'),
-        #         ( 2, '2020-08-20', 320, 'food'),
-        #         ( 2, '2020-08-21', 450, 'growth'),
-        #         ( 3, '2020-08-22', 1150, 'equipment'),
-        #         ( 3, '2020-08-23', 6150, 'food')"""
 
-        #     finance_database.execute_query(pop_person)
-        #     finance_database.execute_query(pop_payment)
-        
-        # if event == "-RESET-":
-        #     finance_database.execute_query("DROP TABLE payment")
-        #     finance_database.execute_query("DROP TABLE person")
-        #     create_person_table = """
-        #     CREATE TABLE person (
-        #     person_id INT PRIMARY KEY AUTO_INCREMENT,
-        #     person_name TEXT NOT NULL,
-        #     monthly_income INT NOT NULL,
-        #     spending_limit INT
-        #     );
-        #     """
 
-        #     create_payment_table = """
-        #     CREATE TABLE payment (
-        #     payment_id INT PRIMARY KEY AUTO_INCREMENT,
-        #     person_id INT,
-        #     date DATE,
-        #     amount INT,
-        #     type TEXT,
-        #     FOREIGN KEY (person_id) REFERENCES person(person_id)
-        #     );
-        #     """
-        #     finance_database.execute_query(create_person_table)
-        #     finance_database.execute_query(create_payment_table)
 main_window()
