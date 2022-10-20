@@ -1,13 +1,18 @@
-from calendar import month
-from datetime import datetime, date
-from multiprocessing import connection
-import string
-from xml.dom import ValidationErr
-import mysql.connector
-from mysql.connector import Error
-import pandas as pd
+from cProfile import label
+from turtle import left
+from winreg import QueryInfoKey
 import pydantic_constrained_types as cons
 import pydantic
+import string
+import psycopg2
+import sqlalchemy as sql
+import matplotlib.pyplot as plt
+import pandas as pd
+
+from datetime import datetime, date
+from xml.dom import ValidationErr
+from configparser import ConfigParser
+
 
 
 class PositiveInt(pydantic.BaseModel):
@@ -19,18 +24,6 @@ class JustLetters(pydantic.BaseModel):
 class Date(pydantic.BaseModel):
     d: date = None
 
-def validate_positive_int(message:str):
-    while True:
-        try:
-            income = PositiveInt(id=input(message))
-            income_tested = income.id
-            if income_tested < 1000000000:
-                return income_tested
-            else:
-                print("invalid input")
-        except pydantic.error_wrappers.ValidationError:
-            print("invalid input")
-
 def validate_positive_int_gui(number):
 
         income = PositiveInt(id=number)
@@ -38,132 +31,66 @@ def validate_positive_int_gui(number):
         if income_tested < 1000000000:
             return income_tested
 
-
-
-def validate_positive_int_null(message:str):
-    while True:
-        try:
-            income_or_null = input(message)
-            if income_or_null == "":
-                return None
-            income = PositiveInt(id= income_or_null)
-            income_tested = income.id
-            if income_tested < 1000000000:
-                return income_tested
-            else:
-                print("invalid input")
-        except pydantic.error_wrappers.ValidationError:
-            print("invalid input")
-
-def validate_words(message:str):
-    while True:
-            name = JustLetters(id=input(message))
-            for char in name.id:
-                if char not in string.ascii_letters:
-                    name = ""
-            if name != "":
-                name_tested = name.id
-                return name_tested
-
-
 def validate_words_gui(word:str):
             name = JustLetters(id=word)
             for char in name.id:
                 if char not in string.ascii_letters:
                     name = ""
             if name != "":
-                name_tested = name.id
+                name_tested = name.id.lower()
                 return name_tested
-
-
-def validate_words_null(message:str):
-    while True:
-        try:
-            name_or_null = input(message)
-            if name_or_null == "":
-                return None
-            name = JustLetters(id=name_or_null)
-            for char in name.id:
-                if char not in string.ascii_letters:
-                    name = ""
-            if name != "":
-                name_tested = name.id
-                return name_tested
-        except pydantic.error_wrappers.ValidationError:
-            print("invalid input")
-
-def validate_date_null(message:str):
-    while True:
-        try:
-            date_or_null = input(message)
-            if date_or_null == "":
-                return None
-            date = Date(d=date_or_null)
-            if date.d > datetime(1980,1,1).date():
-                date_tested = date.d
-                return date_tested
-            print("date is only accepted in yyyy-mm-dd format")
-        except pydantic.error_wrappers.ValidationError:
-            print("date is only accepted in yyyy-mm-dd format")
-
-def validate_date(message:str):
-    while True:
-        try:
-            date = Date(d=input(message))
-            if date.d > datetime(1980,1,1).date():
-                date_tested = date.d
-                return date_tested
-            print("date is only accepted in yyyy-mm-dd format")
-        except pydantic.error_wrappers.ValidationError:
-            print("date is only accepted in yyyy-mm-dd format and cannot be in the future")
 
 def validate_date_gui(date_input:str):
-
-        date = Date(d=date_input)
-        if date.d > datetime(1980,1,1).date():
-            date_tested = date.d
+    if date_input != "today":
+        date_ = Date(d=date_input)
+        if date_.d > datetime(1980,1,1).date():
+            date_tested = date_.d
             return date_tested
         raise ValidationErr
+    else:
+        date_tested = date.today()
+        return date_tested
 
+def config(filename='database.ini', section='postgresql'):
+    parser = ConfigParser()
+    parser.read(filename)
+    db = {}
+    if parser.has_section(section):
+        params = parser.items(section)
+        for param in params:
+            db[param[0]] = param[1]
+    else:
+        raise Exception('Section {0} not found in the {1} file'.format(section, filename))
 
+    return db
 
-
-
-def create_db_connection(host_name, user_name, user_password, db_name):
+def create_db_connection():
         connection = None
         try:
-            connection = mysql.connector.connect(
-                host=host_name,
-                user=user_name,
-                passwd=user_password,
-                database = db_name)
+            params = config()
+            connection = psycopg2.connect(**params)
                     
-            print("MySQL Database connection successful")
-        except Error as err:
-            print(f"Error: '{err}'")
+            print("Database connection successful")
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
         return connection
 
+def create_engine_config():
+    params = config()
+    hostname, database_name, user, password = params["host"], params["database"], params["user"], params["password"]
+    engine = sql.create_engine(f'postgresql+psycopg2://{user}:{password}@{hostname}/{database_name}')
+    return engine
+
+def return_plot_job(dataframe,plot_type = "bar", title_window = ""):
+
+    dataframe.plot(x = dataframe.columns[0], y =[dataframe.columns[1],dataframe.columns[2]],kind = plot_type, title = title_window)
+    plt.show()
 
 class DataBase:
-    connection = create_db_connection("localhost", "root", "root", "finance")
+    engine = create_engine_config()
+    connection = create_db_connection()
     def __init__(self):
         pass
-    
-
-    def input_new_person(self):
-        
-        name_tested = validate_words("Person name: ")
-        income_tested = validate_positive_int("Monthly input: ")
-        limit_tested = validate_positive_int("Monthly spending limit: ")
-        return name_tested, income_tested, limit_tested
-
-    
-    def get_input(self):
-        
-        print("commands to run 1-x 2-y 3-z etc Q to exit")
-        user_input = input("Choose command to run: ")
-
-        return user_input
 
     def execute_query(self, query, connect=connection):
         cursor = connect.cursor()
@@ -171,31 +98,8 @@ class DataBase:
             cursor.execute(query)
             connect.commit()
             print("Query successful")
-        except Error as err:
-            print(f"Error: '{err}'")
-    
-    def execute_command(self, command):
-
-        if command == "0":
-            query = self.insert_person()
-            self.execute_query(query)
-        elif command =="1":
-            query = self.insert_payment()
-            self.execute_query(query)
-        elif command == "2":
-            query = self.apply_filters()
-            result = self.read_query(query)
-            for item in result:
-                print(item)
-        elif command =="3":
-            self.return_advice()
-        elif command =="4":
-            query = """
-            SELECT * FROM person;
-            """
-            result = self.read_query(query)
-            for item in result:
-                print(item)
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
     
     def execute_gui_command(self, command):
         
@@ -203,103 +107,42 @@ class DataBase:
             query = self.insert_person_gui()
             self.execute_query(query)
         elif command =="1":
-            query = self.insert_payment()
+            query = self.insert_payment_gui()
             self.execute_query(query)
         elif command == "2":
-            query = self.apply_filters()
+            query = self.apply_filters_gui()
             result = self.read_query(query)
             for item in result:
                 print(item)
         elif command =="3":
-            self.return_advice()
-        
+            self.return_advice_gui()
     
-    def insert_person(self):
-        name, income, limit = self.input_new_person()
-        name = f'"{name}"'
-        query = f"INSERT INTO person(person_name, monthly_income, spending_limit) VALUES ({name}, {income}, {limit})"
+    def insert_person_gui(self, name, job, limit, birthday, months_of_grace):
+        name = f"'{name}'"
+        job = f"'{job}'"
+        birthday = f"'{birthday}'"
+        query = f"INSERT INTO person(person_name, job, spending_limit, birthday, months_of_grace_period) VALUES ({name}, {job}, {limit}, {birthday},{months_of_grace})"
         return query
     
-    def insert_person_gui(self, name, income, limit):
-        name = f'"{name}"'
-        query = f"INSERT INTO person(person_name, monthly_income, spending_limit) VALUES ({name}, {income}, {limit})"
-        return query
-     
-    def insert_payment(self):
-        person_id, date, amount, payment_type = self.input_new_payment()
-        payment_type = f'"{payment_type}"'
-        date = f'"{date}"'
-        query = f"INSERT INTO payment(person_id, date, amount, type) VALUES({person_id}, {date}, {amount}, {payment_type})"
-        return query
-    
-    def insert_payment_gui(self,person_id, date, amount, payment_type):
-        payment_type = f'"{payment_type}"'
-        date = f'"{date}"'
-        query = f"INSERT INTO payment(person_id, date, amount, type) VALUES({person_id}, {date}, {amount}, {payment_type})"
-        return query
-    
-    def input_new_payment(self):
-
-        person_id_tested = validate_positive_int("Person ID number: ")
-        date_tested = validate_date("Date of purchase: ")
-        amount_tested = validate_positive_int("Cost: ")
-        payment_type_tested = validate_words("Category: ")
-
-        return person_id_tested, date_tested, amount_tested, payment_type_tested
-
-    def apply_filters(self):
-        # price range, date, type, person
-        (type_specified, price_specified_high, price_specified_low,
-         date_specified_old, date_specified_new, person_specified) = self.input_select_filters()
-        
-        if type_specified is not None:
-            type_query = f"type = '{type_specified}' and "
-        else:
-            type_query = ""
-
-        if price_specified_high is not None:
-            price_query_high = f"amount < {price_specified_high} and "
-        else:
-            price_query_high = ""
-
-        if price_specified_low is not None:
-            price_query_low = f"amount > {price_specified_low} and "
-        else:
-            price_query_low = ""
-
-        if date_specified_old is not None:
-            date_query_old = f"date > '{date_specified_old}' and "
-        else:
-            date_query_old = ""
-
-        if date_specified_new is not None:
-            date_query_new = f"date < '{date_specified_new}' and "
-        else:
-            date_query_new = ""
-
-        if person_specified is not None:
-            person_query = f"person_id = {person_specified}"
-        else:
-            person_query = ""
-
-        query = (f"SELECT * FROM payment WHERE {type_query}{price_query_high}"
-        +f"{price_query_low}{date_query_old}{date_query_new}{person_query};")
-
-        if query.endswith(" and ;"):
-            query = query[:-5]
-        if query.endswith(" WHERE "):
-            query = "SELECT * FROM payment"
-
-        print(f"statemnt sent to database: {query}")
+    def insert_payment_gui(self,person_id, amount, date, venue, payment_type):
+        payment_type = f"'{payment_type}'"
+        venue = f"'{venue}'"
+        date = f"'{date}'"
+        query = f"INSERT INTO spendings(person_id, amount, spending_date, venue, category) VALUES({person_id}, {amount}, {date}, {venue}, {payment_type})"
         return query
 
     def apply_filters_gui(self,type_specified, price_specified_high, price_specified_low,
-         date_specified_old, date_specified_new, person_specified):
+         date_specified_old, date_specified_new, person_specified, venue_specified):
         
         if type_specified is not None:
-            type_query = f"type = '{type_specified}' and "
+            type_query = f"category = '{type_specified}' and "
         else:
             type_query = ""
+
+        if venue_specified is not None:
+            venue_query = f"venue = '{venue_specified}' and "
+        else:
+            venue_query = ""
 
         if price_specified_high is not None:
             price_query_high = f"amount < {price_specified_high} and "
@@ -312,12 +155,12 @@ class DataBase:
             price_query_low = ""
 
         if date_specified_old is not None:
-            date_query_old = f"date > '{date_specified_old}' and "
+            date_query_old = f"spending_date > '{date_specified_old}' and "
         else:
             date_query_old = ""
 
         if date_specified_new is not None:
-            date_query_new = f"date < '{date_specified_new}' and "
+            date_query_new = f"spending_date < '{date_specified_new}' and "
         else:
             date_query_new = ""
 
@@ -326,28 +169,19 @@ class DataBase:
         else:
             person_query = ""
 
-        query = (f"SELECT * FROM payment WHERE {type_query}{price_query_high}"
+        query = (f"SELECT * FROM spendings WHERE {type_query}{venue_query}{price_query_high}"
         f"{price_query_low}{date_query_old}{date_query_new}{person_query};")
 
         if query.endswith(" and ;"):
             query = query[:-5]
         if query.endswith(" WHERE ;"):
-            query = "SELECT * FROM payment"
+            query = """SELECT * 
+            FROM spendings
+            ORDER BY spending_date DESC
+            LIMIT 100;"""
 
         print(f"statemnt sent to database: {query}")
         return query
-
-
-    def input_select_filters(self):
-        print("select filters, input empty to turn a filter off")
-        type_specified = validate_words_null("Category: ")
-        price_specified_high =  validate_positive_int_null("Upper price filter: ")
-        price_specified_low =  validate_positive_int_null("Lower price filter: ")
-        date_specified_old = validate_date_null("Show purchase for dates NEWER than: ")
-        date_specified_new = validate_date_null("Show purchase for dates OLDER than: ")
-        person_specified = validate_positive_int_null("Show purchase for person with a specific ID: ")
-        
-        return type_specified, price_specified_high, price_specified_low, date_specified_old, date_specified_new, person_specified
 
     def read_query(self, query, connecto=connection):
         cursor = connecto.cursor()
@@ -356,76 +190,108 @@ class DataBase:
             cursor.execute(query)
             result = cursor.fetchall()
             return result
-        except Error as err:
-            print(f"Error: '{err}'")
-
-    def specify_user_advice(self):
-        return validate_positive_int("User ID: ")
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
     
-    def filter_for_user(self, user):
-        last_month = date.today().replace(month=date.today().month-1)
-        query = f"SELECT * FROM payment WHERE person_id = {user} and date > '{last_month}'"
-        return query
-    
-    def query_user_info(self, user):
-        query = f"SELECT monthly_income, spending_limit, person_name FROM person WHERE person_id = {user}"
-        return query
-
-    def return_advice(self):
-        user = self.specify_user_advice()
-        spending = self.get_user_spending(user)
-        user_name, monthly_income, spending_limit = self.get_user_personal_data(user)
-        total = self.user_total_spending(spending)
-        print(f"{user_name}, you have spent {total} PLN in the last 30 days")
-        if total > spending_limit:
-            print(f"You disregarded your spending limit by {total- spending_limit} PLN")
-        print(f"You spent {total/monthly_income*100}% of your monthly income")
-    
-    def return_advice_gui(self, user):
-        spending = self.get_user_spending(user)
-        user_name, monthly_income, spending_limit = self.get_user_personal_data(user)
-        total = self.user_total_spending(spending)
-        return_string = f"{user_name}, you have spent {total} PLN in the last 30 days\n"
-        if total > spending_limit:
-            return_string += (f"You disregarded your spending limit by {total- spending_limit} PLN\n")
-        return_string += (f"You spent {total/monthly_income*100:.1f}% of your monthly income\n")
-        return return_string
-
-    def get_user_spending(self, user):
-        query = self.filter_for_user(user)
-        data = self.read_query(query)
-        spending_temp_dict = {}
-        for item in data:
-            try:
-                spending_temp_dict[item[4]] += item[3]
-            except KeyError:
-                spending_temp_dict[item[4]] = item[3]
-        return spending_temp_dict
-    
-    def get_user_personal_data(self, user):
-        query_for_user = self.query_user_info(user)
-        user_data = self.read_query(query_for_user)
-        monthly_income = user_data[0][0]
-        spending_limit = user_data[0][1]
-        user_name = user_data[0][2]
-        return user_name, monthly_income, spending_limit
-
-    def user_total_spending(self, spending):
-        total_spent = 0
-        for key in spending:
-            total_spent += spending[key]
+    def job_stats(self, variant = 'yearly'):
+        #long term spendings, rent etc
+        query1 = """
+        select person.job as Job, sum(long_term_spending.amount*long_term_spending.times)/count(distinct person.person_name) as spending FROM person
+INNER JOIN long_term_spending ON long_term_spending.person_id = person.person_id
+WHERE DATE_PART('day', now() - start_date::timestamp) <= 365
+Group by job;
+        """
+        #everyday spendings
+        query2 = """
+        select person.job as Job, (sum(spendings.amount))/count(distinct person.person_name) as spending 
+		FROM person
+INNER JOIN spendings ON spendings.person_id = person.person_id
+WHERE DATE_PART('day', now() - spending_date::timestamp) <= 365
+Group by job;
+        """
+        #income per job
+        query3 = """
+    select person.job as Job, (sum(incomes.amount))/count(distinct person.person_name) as incomes FROM person
+INNER JOIN incomes ON incomes.person_id = person.person_id
+WHERE DATE_PART('day', now() - income_date::timestamp) <= 365
+Group by job;
+    """
         
-        return total_spent
+        incomes = pd.read_sql_query(query3, self.engine)
+        long_spend = pd.read_sql_query(query1, self.engine)
+        dt = pd.read_sql_query(query2, self.engine)
+        dt.spending = dt.spending + long_spend.spending
+        dt['total income'] = incomes.incomes
+        if variant == 'y':
+            return_plot_job(dt, title_window ='Average yearly income and spending for jobs')
+        elif variant == 'm':
+            dt.spending = dt.spending.map(lambda p: p/12)
+            dt['total income'] = dt['total income'].map(lambda p: p/12)
+            return_plot_job(dt, title_window ='Average monthly income and spending for jobs')
+        elif variant == 'd':
+            dt.spending = dt.spending.map(lambda p: p/365)
+            dt['total income'] = dt['total income'].map(lambda p: p/365)
+            return_plot_job(dt, title_window ='Average daily income and spending for jobs')
 
+    def money_stats(self):
+        #long term spendings, rent etc
+        query1 = """
+        select person.person_id as id, 
+sum(long_term_spending.amount*long_term_spending.times)/count(distinct person.person_id) as spending
+FROM person
+LEFT OUTER JOIN long_term_spending ON long_term_spending.person_id = person.person_id
+WHERE DATE_PART('day', now() - start_date::timestamp) <= 365
+GROUP BY person.person_id;
+        """
+        #everyday spendings
+        query2 = """
+        select person.person_id as id, (sum(spendings.amount))/count(distinct person.person_name) as spending 
+		FROM person
+INNER JOIN spendings ON spendings.person_id = person.person_id
+WHERE DATE_PART('day', now() - spending_date::timestamp) <= 365
+GROUP BY person.person_id;
+        """
+        #income per job
+        query3 = """
+    select person.person_id as id, (sum(incomes.amount))/count(distinct person.person_name) as incomes FROM person
+INNER JOIN incomes ON incomes.person_id = person.person_id
+WHERE DATE_PART('day', now() - income_date::timestamp) <= 365
+GROUP BY person.person_id;
+    """
+        incomes = pd.read_sql_query(query3, self.engine)
+        long_spend = pd.read_sql_query(query1, self.engine)
+        long_spend = long_spend.set_index('id')
+        dt = pd.read_sql_query(query2, self.engine)
+        dt = dt.join(long_spend.spending, 'id',rsuffix='_l')
+        dt['total spending'] = dt.spending.fillna(0) + dt.spending_l.fillna(0)
+        dt = dt.drop('spending', axis=1)
+        dt = dt.drop('spending_l', axis=1)
+        dt['income'] = incomes.incomes
+        dt['money saved'] = dt.income - dt["total spending"]
+        dt.income = dt.income.map(lambda p: p/12)
+        dt = dt.drop('total spending', axis=1)
+        return_plot_job(dt,title_window= 'Money saved compared to monthly income')
+    
+    def category_stats(self):
+        query = """
+        select category, sum(spendings.amount) as amount
+		FROM spendings
+WHERE DATE_PART('day', now() - spending_date::timestamp) <= 365
+Group by category;
+        """
+        dt = pd.read_sql_query(query, self.engine)
+        dt.plot(x = dt.columns[0], y =dt.columns[1],kind = 'bar', title='Spending per category')
+        plt.show()
 
-        
-if __name__ == "__main__":
-    finance_database = DataBase()
-    while True:
-        command = finance_database.get_input()
-        if command == "Q":
-            break
-        else:
-            finance_database.execute_command(command)
-
-
+    def venue_stats(self):
+        query = """
+        select venue, sum(spendings.amount) as amount
+		FROM spendings
+WHERE DATE_PART('day', now() - spending_date::timestamp) <= 365
+Group by venue
+ORDER BY amount DESC
+LIMIT 10;
+        """
+        dt = pd.read_sql_query(query, self.engine)
+        dt.plot(x = dt.columns[0], y =dt.columns[1],kind = 'bar', title="top 10 venues by spending")
+        plt.show()
