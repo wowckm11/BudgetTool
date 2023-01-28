@@ -5,7 +5,7 @@ Budgeting app that allows you to track your expenses and receive saving suggesti
 App is written in Python3.8, saves data in a PostgreSQL database, and allows the user to operate on the database utilising SQLAlchemy engine, pandas dataframes.
 General purpose is to visualise accumulated data with matlab plots.
 
-DISCLAIMER: Screens below do not contain real-world data nor do they reflect it, i wrote a program to generate around 1500 randomised entries for configured persons in the database.
+DISCLAIMER: Screens below do not contain real-world data nor do they reflect it, I wrote a program to generate around 1500 randomised entries for configured persons in the database.
 
 
 
